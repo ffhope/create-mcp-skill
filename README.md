@@ -46,21 +46,6 @@ Use this skill when:
 3. Configure Cursor: Follow instructions in `reference.md`
 4. Test your server: `./scripts/test-mcp.sh index.js`
 
-## Project Structure
-
-```
-create-mcp-skill/
-├── SKILL.md          # Main skill instructions
-├── README.md         # Repository documentation
-├── reference.md      # Detailed technical reference
-├── examples.md       # Usage examples
-├── STRUCTURE.md      # Project structure guide
-└── scripts/          # Utility scripts
-    ├── generate-mcp.sh
-    ├── validate-mcp.sh
-    └── test-mcp.sh
-```
-
 ## Requirements
 
 - Node.js 18 or higher
