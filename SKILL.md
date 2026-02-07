@@ -1,18 +1,35 @@
 ---
 name: create-mcp
-description: 创建标准 MCP（Model Context Protocol）服务器项目。当用户需要创建新的 MCP 服务器、添加 MCP 工具或资源、配置 Cursor MCP 时使用。
+description: 创建标准 MCP（Model Context Protocol）服务器项目。当用户需要创建新的 MCP 服务器、添加 MCP 工具或资源、配置 Cursor MCP 时使用。提供完整的项目模板、工具和资源开发指南、Cursor 配置说明。
 ---
 
 # 创建标准 MCP 服务器
 
+快速创建标准 MCP（Model Context Protocol）服务器项目的完整指南。
+
+## 何时使用此 Skill
+
+使用此 skill 当：
+- 创建新的 MCP 服务器项目
+- 添加 MCP 工具（Tools）
+- 添加 MCP 资源（Resources）
+- 配置 Cursor MCP 连接
+- 调试 MCP 服务器问题
+
 ## 快速开始
 
-创建标准 MCP 项目结构：
+### 方法一：使用生成脚本
 
-1. 创建项目目录和基础文件
-2. 初始化 package.json
-3. 创建 index.js 服务器代码
-4. 创建 Cursor 配置文件模板
+```bash
+./scripts/generate-mcp.sh my-mcp-server
+```
+
+### 方法二：手动创建
+
+1. 创建项目目录
+2. 初始化 package.json（参考 [reference.md](reference.md#packagejson-配置)）
+3. 创建 index.js（参考 [reference.md](reference.md#服务器代码结构)）
+4. 配置 Cursor（参考 [reference.md](reference.md#cursor-配置)）
 
 ## 项目结构
 
@@ -25,224 +42,56 @@ mcp-project-name/
 └── README.md            # 项目说明
 ```
 
+## 核心概念
+
+### Tools（工具）
+AI 可以调用的函数，如计算器、文件操作等。
+
+### Resources（资源）
+AI 可以读取的数据，如配置文件、数据库信息等。
+
 ## 标准模板
 
-### package.json
+基础模板代码见 [reference.md](reference.md#标准模板代码)。
 
-```json
-{
-  "name": "mcp-project-name",
-  "version": "1.0.0",
-  "type": "module",
-  "main": "index.js",
-  "scripts": {
-    "start": "node index.js"
-  },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^0.5.0"
-  }
-}
-```
+## 添加工具和资源
 
-### index.js 基础结构
-
-```javascript
-#!/usr/bin/env node
-
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-  ListResourcesRequestSchema,
-  ReadResourceRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
-
-const server = new Server(
-  {
-    name: 'mcp-project-name',
-    version: '1.0.0',
-  },
-  {
-    capabilities: {
-      tools: {},
-      resources: {},
-    },
-  }
-);
-
-server.setRequestHandler(ListToolsRequestSchema, async () => ({
-  tools: [
-    {
-      name: 'echo',
-      description: '回显输入的文本',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          text: {
-            type: 'string',
-            description: '要回显的文本',
-          },
-        },
-        required: ['text'],
-      },
-    },
-  ],
-}));
-
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  const { name, arguments: args } = request.params;
-
-  if (name === 'echo') {
-    return {
-      content: [
-        {
-          type: 'text',
-          text: `回显: ${args.text}`,
-        },
-      ],
-    };
-  }
-
-  throw new Error(`未知工具: ${name}`);
-});
-
-server.setRequestHandler(ListResourcesRequestSchema, async () => ({
-  resources: [
-    {
-      uri: 'demo://time',
-      name: '当前时间',
-      description: '获取当前时间',
-      mimeType: 'text/plain',
-    },
-  ],
-}));
-
-server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
-  const { uri } = request.params;
-
-  if (uri === 'demo://time') {
-    return {
-      contents: [
-        {
-          uri,
-          mimeType: 'text/plain',
-          text: `当前时间: ${new Date().toLocaleString('zh-CN')}`,
-        },
-      ],
-    };
-  }
-
-  throw new Error(`未知资源: ${uri}`);
-});
-
-async function main() {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-}
-
-main().catch(console.error);
-```
-
-### cursor-config.json 模板
-
-```json
-{
-  "mcpServers": {
-    "mcp-project-name": {
-      "command": "node",
-      "args": ["/完整路径/mcp-project-name/index.js"]
-    }
-  }
-}
-```
-
-## 添加新工具
-
-在 `ListToolsRequestSchema` 中添加工具定义：
-
-```javascript
-{
-  name: 'tool-name',
-  description: '工具描述',
-  inputSchema: {
-    type: 'object',
-    properties: {
-      param1: {
-        type: 'string',
-        description: '参数描述',
-      },
-    },
-    required: ['param1'],
-  },
-}
-```
-
-在 `CallToolRequestSchema` 中添加处理逻辑：
-
-```javascript
-if (name === 'tool-name') {
-  const { param1 } = args;
-  return {
-    content: [
-      {
-        type: 'text',
-        text: `结果: ${param1}`,
-      },
-    ],
-  };
-}
-```
-
-## 添加新资源
-
-在 `ListResourcesRequestSchema` 中添加资源定义：
-
-```javascript
-{
-  uri: 'demo://resource-name',
-  name: '资源名称',
-  description: '资源描述',
-  mimeType: 'text/plain',
-}
-```
-
-在 `ReadResourceRequestSchema` 中添加读取逻辑：
-
-```javascript
-if (uri === 'demo://resource-name') {
-  return {
-    contents: [
-      {
-        uri,
-        mimeType: 'text/plain',
-        text: '资源内容',
-      },
-    ],
-  };
-}
-```
+详细指南见 [reference.md](reference.md#添加工具) 和 [reference.md](reference.md#添加资源)。
 
 ## Cursor 配置
 
-配置文件位置（macOS）：
+配置文件位置和格式见 [reference.md](reference.md#cursor-配置)。
+
+## 验证和测试
+
+使用验证脚本：
+```bash
+./scripts/validate-mcp.sh .
+./scripts/test-mcp.sh index.js
 ```
-~/Library/Application Support/Cursor/User/globalStorage/rooveterinaryinc.roo-cline/settings/cline_mcp_settings.json
-```
 
-**重要**：
-- 使用绝对路径
-- 配置后需重启 Cursor
-- 确保 Node.js 版本 >= 18
+## 完整示例
 
-## 验证方法
+查看 [examples.md](examples.md) 获取：
+- 简单 echo 工具示例
+- 计算器工具示例
+- 文件操作工具示例
+- 数据库资源示例
+- 复杂 MCP 服务器示例
 
-在 Cursor 中测试：
-- 工具：`使用 echo 工具，回显"测试成功"`
-- 资源：`读取当前时间资源`
+## 工具脚本
+
+- **generate-mcp.sh** - 生成 MCP 项目模板
+- **validate-mcp.sh** - 验证 MCP 项目结构
+- **test-mcp.sh** - 测试 MCP 服务器
+- **check-dependencies.sh** - 检查依赖安装
 
 ## 常见问题
 
-1. **服务器启动失败**：检查 Node.js 版本和依赖安装
-2. **Cursor 找不到工具**：检查配置文件路径是否为绝对路径
-3. **工具调用错误**：检查参数格式是否符合 inputSchema
+见 [reference.md](reference.md#常见问题)。
+
+## 更多资源
+
+- 详细技术文档：[reference.md](reference.md)
+- 使用示例：[examples.md](examples.md)
+- 项目结构说明：[STRUCTURE.md](STRUCTURE.md)
