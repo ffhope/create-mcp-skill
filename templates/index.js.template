@@ -1,0 +1,95 @@
+#!/usr/bin/env node
+
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
+} from '@modelcontextprotocol/sdk/types.js';
+
+const server = new Server(
+  {
+    name: '{{PROJECT_NAME}}',
+    version: '1.0.0',
+  },
+  {
+    capabilities: {
+      tools: {},
+      resources: {},
+    },
+  }
+);
+
+server.setRequestHandler(ListToolsRequestSchema, async () => ({
+  tools: [
+    {
+      name: 'echo',
+      description: '回显输入的文本',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          text: {
+            type: 'string',
+            description: '要回显的文本',
+          },
+        },
+        required: ['text'],
+      },
+    },
+  ],
+}));
+
+server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  const { name, arguments: args } = request.params;
+
+  if (name === 'echo') {
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `回显: ${args.text}`,
+        },
+      ],
+    };
+  }
+
+  throw new Error(`未知工具: ${name}`);
+});
+
+server.setRequestHandler(ListResourcesRequestSchema, async () => ({
+  resources: [
+    {
+      uri: 'demo://time',
+      name: '当前时间',
+      description: '获取当前时间',
+      mimeType: 'text/plain',
+    },
+  ],
+}));
+
+server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+  const { uri } = request.params;
+
+  if (uri === 'demo://time') {
+    return {
+      contents: [
+        {
+          uri,
+          mimeType: 'text/plain',
+          text: `当前时间: ${new Date().toLocaleString('zh-CN')}`,
+        },
+      ],
+    };
+  }
+
+  throw new Error(`未知资源: ${uri}`);
+});
+
+async function main() {
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+}
+
+main().catch(console.error);

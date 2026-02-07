@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "{{PROJECT_NAME}}": {
+      "command": "node",
+      "args": ["{{PROJECT_PATH}}/index.js"]
+    }
+  }
+}
